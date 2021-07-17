@@ -1,18 +1,13 @@
 
-# install.packages("qmao", repos="http://R-Forge.R-project.org")
-# devtools::install_github('Rapporter/pander')
-library(BatchGetSymbols)
-library(rio)
-library(qmao)
-library(reticulate)
-path_to_python <- "/usr/bin/python"
-use_python(path_to_python)
-reticulate::py_available()
-reticulate::import("yfinance")
-reticulate::import("lxml")
-reticulate::import("os")
-source_python("ratios-yfinance.py")
+# path_to_python <- "/usr/bin/python"
+# use_python(path_to_python)
+# reticulate::py_available()
+# reticulate::import("yfinance")
+# reticulate::import("lxml")
+# reticulate::import("os")
+# source_python("ratios-yfinance.py")
 
+source("key-stats-valuation.R")
 # Create directories
 WORK_DIR <- "."
 setwd(WORK_DIR)
@@ -39,10 +34,14 @@ SP500_DF <- SP500_DF[, c(7,1,2,3,4,5,6,8,9,10)]
 SP500_DF$ticker <- NULL
 
 # Write to excel/csv
-tickerFile <- "SP500.xlsx"
+tickerFile <- "SP500.csv"
 tickerFilePath <- paste(DOWNLOADS, tickerFile, sep="/")
-# write.csv(SP500_DF, file = tickerFilePath)
-export(SP500_DF, tickerFilePath , append=FALSE)
+write.csv(SP500_DF, file = tickerFilePath)
+# export(SP500_DF, tickerFilePath , append=FALSE)
+
+# Sanitise with "-" these companies that have tickers with "."
+SP500_INFO["Tickers"][SP500_INFO["Tickers"] == "BRK.B"] <- "BRK-B"
+SP500_INFO["Tickers"][SP500_INFO["Tickers"] == "BF.B"] <- "BF-B"
 
 # Download prices in batch for all companies in the SP500 and store prices in cache folder
 TICKERS <- SP500_INFO$Tickers
@@ -65,14 +64,15 @@ for(ticker in TICKERS){
       tickerFile <- trimws(ticker)
       tickerFilePath <- paste(DOWNLOADS, tickerFile, sep="/")
       fileName <- paste(tickerFilePath,".csv",sep = "")
-      export(TICKER_DF, fileName , append=FALSE)
-
-      # write.csv(TICKER_DF, file = fileName, row.names = FALSE)
+      # export(TICKER_DF, fileName , append=FALSE)
+      write.csv(TICKER_DF, file = fileName, row.names = FALSE)
 
       # Get Key stats for that ticker from Yahoo Finance with python script ratios-yfinance.py
-      TICKER_STATS <- download_ratios(ticker)
+      fileNameStats <- paste(tickerFilePath,"_stats.csv",sep = "")
+      TICKER_STATS <- KeyStatsDataframe(ticker)
       colnames(TICKER_STATS) <- c("Metric","Value")
-      export(TICKER_STATS, fileName, which = "Key_Stats", append=TRUE)
+      # export(TICKER_STATS, fileNameStats, which = "Key_Stats", append=TRUE)
+      write.csv(TICKER_STATS, file = fileNameStats, row.names = FALSE)
 
       },
       warning = function(w) {
@@ -86,10 +86,9 @@ for(ticker in TICKERS){
   )
 }
 
+TICKER_STATS_APPL <- KeyStatsDataframe("AAPL")
 
-# ticker <- 'AAPL'
-# TICKER_STATS <- download_ratios(ticker)
-#
-# TSLA_ratios <- download_ratios('TSLA')
-# TSLA_ratios
+
+
+
 
