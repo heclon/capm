@@ -7,10 +7,10 @@ shinyUI(fluidPage(
         wellPanel(
           fluidRow(
             column(4,
-                   textInput("indexTicker", "Index", value = "RTS", width = "100%")
+                   textInput("indexTicker", "Index", value = "SP500", width = "100%")
             ),
             column(8,
-                   selectInput("tickersList", "Tickers list", c("rtsi_tickers.csv"), width = "100%")
+                   selectInput("tickersList", "Tickers list",c("sp500_tickers.csv") , width = "100%")
             )
           ),
            fluidRow(

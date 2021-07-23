@@ -4,34 +4,47 @@ library(PerformanceAnalytics)
 library(ggplot2)
 library(plotly)
 library(rusquant)
-library(curl)
 
 function(input, output, session) {
   generalData <- reactive({
+    
     stocks <- read.csv2(paste0('./data/', input$tickersList), stringsAsFactors = F)
     days.ago <- difftime(input$dateTo, input$dateFrom, units = c("days"))
     rf.rate <- as.numeric(input$rfrInput / 365 * days.ago)
     
-    options(download.file.method = "libcurl")
-    market.prices <- as.numeric(getSymbols(input$indexTicker, from = input$dateFrom, to = input$dateTo, 
-                                           src = "Finam", auto.assign = FALSE)[, 4])
+    market.prices <- SP500_DF$close
+    print("Got prices")
     market.returns <- na.omit(diff(market.prices) / market.prices[1 : (length(market.prices) - 1)])
     m.return <- (market.prices[length(market.prices)] - market.prices[1]) / market.prices[1] * 100
-    
+    print("Got market returns")
     withProgress(message = "Stock Data Loading", value = 0, {
       asset.prices <- sapply(t(stocks), 
                            function(x) {
                              incProgress(1 / nrow(stocks), detail = x)
-                             as.numeric(getSymbols(as.character(x), from = input$dateFrom, to = input$dateTo,
-                                                   src = "Finam", auto.assign = F)[, 4])
+                             
+                             tickerFilePath <- paste(DOWNLOADS, x, sep="/")
+                             fileName <- paste(tickerFilePath,".csv",sep = "")
+                             as.numeric(read.csv(fileName)[,4]
+                               )
                            }, 
                            simplify=FALSE, USE.NAMES=TRUE)
-    
+      print("Got asset prices")
+      print("Dimensions of asset.prices:")
+      print(nrow(asset.prices))
+      print(ncol(asset.prices))
       stocks.df <- data.frame(ticker = names(asset.prices), beta = rep(NA, nrow(stocks)), expected.return = rep(NA, nrow(stocks)), 
                             return = rep(NA, nrow(stocks)), alpha = rep(NA, nrow(stocks)), r2 = rep(NA, nrow(stocks)),
                             sortino = rep(NA, nrow(stocks)))
+      
+      
+      print("Init market stocks df")
+      print("Dimensions of stocks.df:")
+      print(nrow(stocks.df))
+      print(ncol(stocks.df))
+      print(stocks.df)
     })
     
+    print("Starting to anlyse stocks")
     withProgress(message = "Price Data Analyzing", value = 0, {
       stocks.df[, c("beta", "expected.return", "return", 
                     "alpha", "r2", "sortino")] <- t(as.data.frame(
@@ -53,6 +66,8 @@ function(input, output, session) {
              }
         )
       ))
+      
+      print("Done analysing stocks.df")
     })
     
     step = 0.1
@@ -60,10 +75,10 @@ function(input, output, session) {
     slope = (sml[2] - sml[1]) / step
     list(stocks.df, rf.rate, slope, market.prices, asset.prices, stocks)
   })
-
+  print("Generating table!")
   output$stocksTable <- DT::renderDataTable({
     stocks.df <- generalData()[[1]]
-    stocks.df#[, c("ticker", "beta", "alpha", "r2")]
+    stocks.df
   }, server = TRUE, selection = "single",
   options = list(rowCallback = JS(
     'function(row, data) {
@@ -73,7 +88,7 @@ function(input, output, session) {
           $("td", row).css("color", "red");
       }'
   ), paging = FALSE, searching = FALSE, processing = FALSE))
-  
+  print("Generating plots!")
   output$smlPlot <- plotly::renderPlotly({
     stocks <- generalData()[[6]]
     stocks.df <- generalData()[[1]]

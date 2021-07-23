@@ -5,7 +5,6 @@
 # reticulate::import("yfinance")
 # reticulate::import("lxml")
 # reticulate::import("os")
-# source_python("ratios-yfinance.py")
 
 source("key-stats-valuation.R")
 # Create directories
@@ -24,9 +23,9 @@ if (!dir.exists(DIR_SP500)){
 # Download info for the list of companies in the SP500 and prices of the SP500 index
 SP500_INFO <- GetSP500Stocks()
 SP500 <- BatchGetSymbols(tickers = '^GSPC',
-                            first.date = first.date,
-                            last.date = last.date,
-                            cache.folder = file.path(WORK_DIR,CACHE))
+                         first.date = first.date,
+                         last.date = last.date,
+                         cache.folder = file.path(WORK_DIR,CACHE))
 # Build a dataframe
 SP500_DF <- as.data.frame(SP500["df.tickers"])
 colnames(SP500_DF) <- c("open", "high","low","close","volume","price_adjusted","date","ticker","return_adjusted_prices","return_closing_prices")
@@ -57,38 +56,31 @@ for(ticker in TICKERS){
                                  last.date = last.date,
                                  cache.folder = file.path(WORK_DIR,CACHE))
   result = tryCatch({
-      TICKER_DF <- as.data.frame(TICKER_RAW ["df.tickers"])
-      names(TICKER_DF) <- c("open", "high","low","close","volume","price_adjusted","date","ticker","return_adjusted_prices","return_closing_prices")
-      TICKER_DF <- TICKER_DF[, c(7,1,2,3,4,5,6,8,9,10)]
-      TICKER_DF$ticker <- NULL
-      tickerFile <- trimws(ticker)
-      tickerFilePath <- paste(DOWNLOADS, tickerFile, sep="/")
-      fileName <- paste(tickerFilePath,".csv",sep = "")
-      # export(TICKER_DF, fileName , append=FALSE)
-      write.csv(TICKER_DF, file = fileName, row.names = FALSE)
-
-      # Get Key stats for that ticker from Yahoo Finance with python script ratios-yfinance.py
-      fileNameStats <- paste(tickerFilePath,"_stats.csv",sep = "")
-      TICKER_STATS <- KeyStatsDataframe(ticker)
-      colnames(TICKER_STATS) <- c("Metric","Value")
-      # export(TICKER_STATS, fileNameStats, which = "Key_Stats", append=TRUE)
-      write.csv(TICKER_STATS, file = fileNameStats, row.names = FALSE)
-
-      },
-      warning = function(w) {
-        c(TICKERS_DOWNLOAD_WARNING, ticker)},
-      error = function(e) {
-        c(TICKERS_DOWNLOAD_ERROR, ticker)},
-      finally = {
-        TICKER_RAW <- NULL; TICKER_DF <- NULL;
-        tickerFile <- NULL; tickerFilePath <- NULL;
-      }
+    TICKER_DF <- as.data.frame(TICKER_RAW ["df.tickers"])
+    names(TICKER_DF) <- c("open", "high","low","close","volume","price_adjusted","date","ticker","return_adjusted_prices","return_closing_prices")
+    TICKER_DF <- TICKER_DF[, c(7,1,2,3,4,5,6,8,9,10)]
+    TICKER_DF$ticker <- NULL
+    ticker <- trimws(ticker)
+    tickerFilePath <- paste(DOWNLOADS, ticker, sep="/")
+    fileName <- paste(tickerFilePath,".csv",sep = "")
+    # export(TICKER_DF, fileName , append=FALSE)
+    write.csv(TICKER_DF, file = fileName, row.names = FALSE)
+    
+    # Get Key stats for that ticker from Yahoo Finance with python script ratios-yfinance.py
+    fileNameStats <- paste(tickerFilePath,"_stats.csv",sep = "")
+    TICKER_STATS <- KeyStatsDataframe(ticker)
+    colnames(TICKER_STATS) <- c("Metric","Value")
+    # export(TICKER_STATS, fileNameStats, which = "Key_Stats", append=TRUE)
+    write.csv(TICKER_STATS, file = fileNameStats, row.names = FALSE)
+    
+  },
+  warning = function(w) {
+    c(TICKERS_DOWNLOAD_WARNING, ticker)},
+  error = function(e) {
+    c(TICKERS_DOWNLOAD_ERROR, ticker)},
+  finally = {
+    TICKER_RAW <- NULL; TICKER_DF <- NULL;
+    tickerFile <- NULL; tickerFilePath <- NULL;
+  }
   )
 }
-
-TICKER_STATS_APPL <- KeyStatsDataframe("AAPL")
-
-
-
-
-

@@ -1,7 +1,7 @@
 # Read Key Stats Information from Marketwatch
 KeyStatsDataframe <- function(ticker){
   
-  url_stats <- paste("https://www.marketwatch.com/investing/stock/", ticker)
+  url_stats <- paste0("https://www.marketwatch.com/investing/stock/", ticker)
   
   key_stats_elements <- url_stats %>%
     read_html() %>%
